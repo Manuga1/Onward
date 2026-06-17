@@ -40,18 +40,29 @@ export function PhoneSignup({ onSuccess }: PhoneSignupProps) {
     setError('');
     setLoading(true);
     const formatted = formatPhone(phone);
-    const { error: err } = await supabase.auth.verifyOtp({
+    const { data, error: err } = await supabase.auth.verifyOtp({
       phone: formatted,
       token: otp,
       type: 'sms',
     });
-    setLoading(false);
     if (err) {
+      setLoading(false);
       setError(err.message);
-    } else {
-      // Hard navigate so the server picks up the new session cookie
-      window.location.href = '/onboarding';
+      return;
     }
+
+    // Exchange tokens into server-side HttpOnly cookies so API routes see the session
+    await fetch('/api/auth/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_token: data.session?.access_token,
+        refresh_token: data.session?.refresh_token,
+      }),
+    });
+
+    setLoading(false);
+    window.location.href = '/onboarding';
   };
 
   return (
