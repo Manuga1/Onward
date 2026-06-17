@@ -49,7 +49,8 @@ export function PhoneSignup({ onSuccess }: PhoneSignupProps) {
     if (err) {
       setError(err.message);
     } else {
-      onSuccess();
+      // Hard navigate so the server picks up the new session cookie
+      window.location.href = '/onboarding';
     }
   };
 
