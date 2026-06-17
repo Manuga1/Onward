@@ -90,6 +90,18 @@ export default async function HomePage() {
           </Link>
         )}
 
+        {/* Chat link */}
+        <Link href="/chat"
+          className="block bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-4 flex items-center gap-3 hover:border-teal-300 dark:hover:border-teal-700 transition-colors">
+          <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center flex-shrink-0">
+            <span className="text-teal-600 dark:text-teal-400 text-lg">💬</span>
+          </div>
+          <div>
+            <p className="font-medium text-stone-800 dark:text-stone-200 text-sm">Message your partner</p>
+            <p className="text-xs text-stone-400">Text only · Private · Encrypted</p>
+          </div>
+        </Link>
+
         {/* Founding cohort banner */}
         <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl px-4 py-3 text-sm text-stone-600 dark:text-stone-400">
           <span className="font-medium text-stone-800 dark:text-stone-200">Founding cohort</span>
