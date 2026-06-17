@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/db/server';
+import { encryptField, decryptField } from '@/lib/crypto/fieldEncrypt';
 
 const MAX_CHARS = 280;
 
@@ -28,9 +29,7 @@ export async function POST(req: NextRequest) {
 
   if (!membership) return NextResponse.json({ error: 'Not in this partnership' }, { status: 403 });
 
-  // HUMAN-OWNED: Encrypt text with KMS before storing
-  // For Phase 2 pilot: stored as-is with a clear marker; replace before launch
-  const textEncrypted = text; // HUMAN-OWNED: encrypt with app-layer KMS
+  const textEncrypted = await encryptField(text);
 
   const { data: message, error } = await supabase
     .from('messages')
@@ -83,14 +82,15 @@ export async function GET(req: NextRequest) {
 
   const { data: messages } = await query;
 
-  // HUMAN-OWNED: Decrypt text_encrypted before returning
-  return NextResponse.json({
-    messages: (messages ?? []).map((m: Record<string, unknown>) => ({
+  const decrypted = await Promise.all(
+    (messages ?? []).map(async (m: Record<string, unknown>) => ({
       messageId: m.message_id,
       senderId: m.sender_id,
-      text: m.text_encrypted, // HUMAN-OWNED: decrypt
+      text: await decryptField(m.text_encrypted as string),
       sentAt: m.sent_at,
       isOwn: m.sender_id === user.id,
-    })),
-  });
+    }))
+  );
+
+  return NextResponse.json({ messages: decrypted });
 }

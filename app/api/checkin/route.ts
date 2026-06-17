@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/db/server';
 import { computeStreak } from '@/packages/core/streak';
+import { encryptField, decryptField } from '@/lib/crypto/fieldEncrypt';
 
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
@@ -34,9 +35,7 @@ export async function POST(req: NextRequest) {
 
   if (existing) return NextResponse.json({ error: 'Already checked in for this window' }, { status: 409 });
 
-  // HUMAN-OWNED: encrypt state before storing (app-layer field encryption)
-  // For Phase 1 pilot, storing plaintext with a note — replace with KMS encryption before launch
-  const stateEncrypted = state; // HUMAN-OWNED: encrypt this field
+  const stateEncrypted = await encryptField(state);
 
   const { error } = await supabase.from('check_ins').insert({
     member_id: user.id,
@@ -64,14 +63,16 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (allCheckIns && partnership) {
-    const domainCheckIns = allCheckIns.map((c: Record<string, unknown>) => ({
-      checkInId: c.check_in_id as string,
-      memberId: c.member_id as string,
-      partnershipId: c.partnership_id as string,
-      state: c.state_encrypted as 'Good' | 'Shaky' | 'Fell',
-      windowId: c.window_id as string,
-      at: new Date(c.submitted_at as string),
-    }));
+    const domainCheckIns = await Promise.all(
+      allCheckIns.map(async (c: Record<string, unknown>) => ({
+        checkInId: c.check_in_id as string,
+        memberId: c.member_id as string,
+        partnershipId: c.partnership_id as string,
+        state: (await decryptField(c.state_encrypted as string)) as 'Good' | 'Shaky' | 'Fell',
+        windowId: c.window_id as string,
+        at: new Date(c.submitted_at as string),
+      }))
+    );
 
     const now = new Date();
     const { streakDays } = computeStreak({

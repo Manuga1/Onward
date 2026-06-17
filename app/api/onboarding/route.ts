@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/db/server';
+import { encryptField, hashForUniqueness } from '@/lib/crypto/fieldEncrypt';
 
 const ADJECTIVES = ['Cedar', 'River', 'Stone', 'Amber', 'Birch', 'Sage', 'Oak', 'Elm', 'Maple', 'Pine'];
 const NOUNS = ['Trail', 'Peak', 'Valley', 'Ridge', 'Meadow', 'Creek', 'Glen', 'Cove', 'Bluff', 'Forge'];
@@ -27,13 +28,19 @@ export async function POST(req: NextRequest) {
 
   // Upsert member profile (uses auth user ID as memberId)
   const codename = generateCodename();
+  const phone = user.phone ?? '';
+  const [phoneEncrypted, phoneHash] = await Promise.all([
+    encryptField(phone),
+    hashForUniqueness(phone),
+  ]);
+
   const { error } = await supabase
     .from('members')
     .upsert({
       member_id: user.id,
       codename,
-      phone_encrypted: 'PENDING', // HUMAN-OWNED: encrypt phone before storing
-      phone_hash: 'PENDING',       // HUMAN-OWNED: hash phone before storing
+      phone_encrypted: phoneEncrypted,
+      phone_hash: phoneHash,
       fight: 'Porn',
       gender,
       intensity,
