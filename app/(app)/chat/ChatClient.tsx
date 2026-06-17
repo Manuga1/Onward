@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Send, Flag, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { authFetch } from '@/lib/db/authFetch';
 
 const MAX_CHARS = 280;
 
@@ -53,7 +54,7 @@ export function ChatClient({ memberId, partnershipId, partnerCodename, initialMe
     setDraft('');
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await authFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ partnershipId, text }),

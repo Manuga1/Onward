@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { authFetch } from '@/lib/db/authFetch';
 
 interface SettingsClientProps {
   codename: string;
@@ -23,7 +24,7 @@ export function SettingsClient({ codename, timezone, checkinHour, stage }: Setti
     setPausing(true);
     setError('');
     try {
-      const res = await fetch('/api/account/pause', {
+      const res = await authFetch('/api/account/pause', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ days: 7 }),
@@ -49,7 +50,7 @@ export function SettingsClient({ codename, timezone, checkinHour, stage }: Setti
     setDeleting(true);
     setError('');
     try {
-      const res = await fetch('/api/account/delete', { method: 'POST' });
+      const res = await authFetch('/api/account/delete', { method: 'POST' });
       if (res.ok) {
         router.push('/signup');
       } else {

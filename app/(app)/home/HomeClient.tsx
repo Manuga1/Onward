@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Flame, AlertTriangle } from 'lucide-react';
+import { authFetch } from '@/lib/db/authFetch';
 
 interface HomeClientProps {
   codename: string;
@@ -27,7 +28,7 @@ export function HomeClient({
   async function requestRematch() {
     setRematchLoading(true);
     try {
-      await fetch('/api/account/rematch', { method: 'POST' });
+      await authFetch('/api/account/rematch', { method: 'POST' });
       setRematchRequested(true);
     } finally {
       setRematchLoading(false);

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Flame, Heart, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Flame, CheckCircle } from 'lucide-react';
+import { authFetch } from '@/lib/db/authFetch';
 import type { CheckInState } from '@/packages/core/types';
 
 interface CheckInClientProps {
@@ -34,7 +35,7 @@ export function CheckInClient({
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/checkin', {
+      const res = await authFetch('/api/checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ partnershipId, state: selected, windowId }),

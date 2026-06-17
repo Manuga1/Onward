@@ -68,9 +68,13 @@ export default function OnboardingPage() {
     setLoading(true);
     setError('');
     try {
+      const { data: { session } } = await (await import('@/lib/db/client')).supabase.auth.getSession();
       const res = await fetch('/api/onboarding', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to save profile');

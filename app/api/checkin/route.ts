@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/db/server';
+import { getUserFromRequest } from '@/lib/db/getUser';
 import { computeStreak } from '@/packages/core/streak';
 import { encryptField, decryptField } from '@/lib/crypto/fieldEncrypt';
 
 export async function POST(req: NextRequest) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const { user, supabase } = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { partnershipId, state, windowId } = await req.json();
@@ -15,7 +13,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid state' }, { status: 400 });
   }
 
-  // Verify user is in this partnership
   const { data: membership } = await supabase
     .from('partnership_members')
     .select('partnership_id')
@@ -25,7 +22,6 @@ export async function POST(req: NextRequest) {
 
   if (!membership) return NextResponse.json({ error: 'Not in this partnership' }, { status: 403 });
 
-  // No duplicate check-ins for the same window
   const { data: existing } = await supabase
     .from('check_ins')
     .select('check_in_id')
@@ -49,7 +45,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to save check-in' }, { status: 500 });
   }
 
-  // Recompute streak and update partnership
   const { data: allCheckIns } = await supabase
     .from('check_ins')
     .select('*')

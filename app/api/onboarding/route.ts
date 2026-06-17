@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/db/server';
+import { getUserFromRequest } from '@/lib/db/getUser';
 import { encryptField, hashForUniqueness } from '@/lib/crypto/fieldEncrypt';
 
 const ADJECTIVES = ['Cedar', 'River', 'Stone', 'Amber', 'Birch', 'Sage', 'Oak', 'Elm', 'Maple', 'Pine'];
-const NOUNS = ['Trail', 'Peak', 'Valley', 'Ridge', 'Meadow', 'Creek', 'Glen', 'Cove', 'Bluff', 'Forge'];
 
 function generateCodename(): string {
   const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
@@ -12,8 +11,7 @@ function generateCodename(): string {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, supabase } = await getUserFromRequest(req);
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,7 +24,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  // Upsert member profile (uses auth user ID as memberId)
   const codename = generateCodename();
   const phone = user.phone ?? '';
   const [phoneEncrypted, phoneHash] = await Promise.all([
@@ -51,7 +48,7 @@ export async function POST(req: NextRequest) {
     }, { onConflict: 'member_id' });
 
   if (error) {
-    console.error('[onboarding]', error.code); // no PII in logs
+    console.error('[onboarding]', error.code);
     return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
   }
 
