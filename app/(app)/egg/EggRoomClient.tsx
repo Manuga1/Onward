@@ -217,7 +217,7 @@ function WaitingForPod() {
         </div>
         <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4 text-sm text-stone-600 dark:text-stone-400 space-y-1">
           <p className="font-medium text-stone-800 dark:text-stone-200">What happens next</p>
-          <p>We'll place you in a small group of {'{'}4–6{'}'} people.</p>
+          <p>We'll place you in a small group of 4–6 people.</p>
           <p>You'll have a week to talk and choose a partner.</p>
           <p>Matching is mutual — everyone chooses.</p>
         </div>
