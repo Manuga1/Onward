@@ -1,6 +1,6 @@
 import type { Member, EggPod, Fight, Gender } from './types';
 
-export const EGG_DURATION_DAYS = 7;
+export const EGG_DURATION_DAYS = 3;
 export const TARGET_POD_SIZE = 5;
 export const MIN_POD_SIZE = 2;
 

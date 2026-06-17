@@ -1,4 +1,5 @@
 import type { EggPod, Member } from './types';
+import { pairCompatibilityScore } from './eggPhase';
 
 // MatchResult deliberately omits any signal about who picked whom or rejection status.
 export interface MatchResult {
@@ -118,9 +119,30 @@ export function matchPartners(input: MatchInput): MatchOutput {
     return { matches, carryOver: [oddOne] };
   }
 
-  // Multiple unmatched: pair them up system-style (by pod order)
-  for (let i = 0; i + 1 < unmatched.length; i += 2) {
-    tryPair(unmatched[i], unmatched[i + 1]);
+  // Multiple unmatched: pair by highest compatibility score (similarity tiebreaker)
+  const unmatchedMembers = unmatched.map(id => pod.members.find(m => m.memberId === id)!);
+  const sortedUnmatched = [...unmatched];
+  // Greedy best-pair: repeatedly pick the highest-scoring remaining pair
+  const tempMatched = new Set<string>();
+  const systemPairs: [string, string][] = [];
+  while (sortedUnmatched.filter(id => !tempMatched.has(id)).length >= 2) {
+    const avail = sortedUnmatched.filter(id => !tempMatched.has(id));
+    let bestScore = -1;
+    let bestPair: [string, string] = [avail[0], avail[1]];
+    for (let i = 0; i < avail.length; i++) {
+      for (let j = i + 1; j < avail.length; j++) {
+        const mA = unmatchedMembers.find(m => m.memberId === avail[i])!;
+        const mB = unmatchedMembers.find(m => m.memberId === avail[j])!;
+        const score = pairCompatibilityScore(mA, mB, input.now);
+        if (score > bestScore) { bestScore = score; bestPair = [avail[i], avail[j]]; }
+      }
+    }
+    systemPairs.push(bestPair);
+    tempMatched.add(bestPair[0]);
+    tempMatched.add(bestPair[1]);
+  }
+  for (const [a, b] of systemPairs) {
+    tryPair(a, b);
   }
 
   // If still odd one remains after system pairing
