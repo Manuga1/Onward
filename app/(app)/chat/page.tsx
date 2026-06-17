@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/db/server';
+import { decryptField } from '@/lib/crypto/fieldEncrypt';
 import { redirect } from 'next/navigation';
 import { ChatClient } from './ChatClient';
 
@@ -38,14 +39,15 @@ export default async function ChatPage() {
     .order('sent_at', { ascending: true })
     .limit(50);
 
-  // HUMAN-OWNED: Decrypt message text here once app-layer encryption is wired
-  const decryptedMessages = (messages ?? []).map((m: Record<string, unknown>) => ({
-    messageId: m.message_id as string,
-    senderId: m.sender_id as string,
-    text: m.text_encrypted as string, // HUMAN-OWNED: decrypt with KMS
-    sentAt: m.sent_at as string,
-    isOwn: m.sender_id === user.id,
-  }));
+  const decryptedMessages = await Promise.all(
+    (messages ?? []).map(async (m: Record<string, unknown>) => ({
+      messageId: m.message_id as string,
+      senderId: m.sender_id as string,
+      text: await decryptField(m.text_encrypted as string),
+      sentAt: m.sent_at as string,
+      isOwn: m.sender_id === user.id,
+    }))
+  );
 
   return (
     <ChatClient

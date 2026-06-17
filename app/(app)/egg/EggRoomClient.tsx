@@ -1,13 +1,16 @@
 'use client';
 
-import { Users, Clock, Heart } from 'lucide-react';
+import { useState } from 'react';
+import { Users, Clock, Heart, Check } from 'lucide-react';
 
 interface EggRoomClientProps {
   pod: Record<string, unknown> | null;
-  podMembers: { codename: string }[];
+  podMembers: { memberId: string; codename: string }[];
+  myMemberId: string;
+  existingPicks: string[]; // memberIds already submitted
 }
 
-export function EggRoomClient({ pod, podMembers }: EggRoomClientProps) {
+export function EggRoomClient({ pod, podMembers, myMemberId, existingPicks }: EggRoomClientProps) {
   if (!pod) {
     return <WaitingForPod />;
   }
@@ -45,7 +48,7 @@ export function EggRoomClient({ pod, podMembers }: EggRoomClientProps) {
           <h2 className="text-sm font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide">
             In your group
           </h2>
-          {podMembers.map(m => (
+          {podMembers.filter(m => m.memberId !== myMemberId).map(m => (
             <div key={m.codename}
               className="bg-white dark:bg-stone-900 rounded-xl px-4 py-3 border border-stone-200 dark:border-stone-800 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center text-teal-700 dark:text-teal-300 text-sm font-mono font-medium">
@@ -56,7 +59,14 @@ export function EggRoomClient({ pod, podMembers }: EggRoomClientProps) {
           ))}
         </div>
 
-        {/* Not-medical disclaimer as persistent banner */}
+        {/* Picks */}
+        <PicksSection
+          podMembers={podMembers.filter(m => m.memberId !== myMemberId)}
+          podId={pod.pod_id as string}
+          existingPicks={existingPicks}
+        />
+
+        {/* Not-medical disclaimer */}
         <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-xs text-amber-700 dark:text-amber-400">
           Onward is peer accountability support, not therapy or medical treatment.
         </div>
@@ -80,6 +90,113 @@ export function EggRoomClient({ pod, podMembers }: EggRoomClientProps) {
           {endsAt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.
         </p>
       </div>
+    </div>
+  );
+}
+
+function PicksSection({
+  podMembers,
+  podId,
+  existingPicks,
+}: {
+  podMembers: { memberId: string; codename: string }[];
+  podId: string;
+  existingPicks: string[];
+}) {
+  const [selected, setSelected] = useState<string[]>(existingPicks);
+  const [saved, setSaved] = useState(existingPicks.length > 0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const MAX_PICKS = 3;
+
+  function toggle(memberId: string) {
+    if (saved) return;
+    setSelected(prev => {
+      if (prev.includes(memberId)) return prev.filter(id => id !== memberId);
+      if (prev.length >= MAX_PICKS) return prev;
+      return [...prev, memberId];
+    });
+  }
+
+  async function submit() {
+    if (selected.length === 0) { setError('Choose at least one person.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch('/api/picks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ podId, picks: selected }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error ?? 'Could not save picks. Try again.');
+      } else {
+        setSaved(true);
+      }
+    } catch {
+      setError('Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (saved) {
+    return (
+      <div className="bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-2xl p-4 flex items-center gap-3">
+        <Check className="w-5 h-5 text-teal-600 dark:text-teal-400 flex-shrink-0" />
+        <div>
+          <p className="text-sm font-medium text-teal-700 dark:text-teal-300">Picks submitted</p>
+          <p className="text-xs text-teal-600 dark:text-teal-400">Private — only used for matching, never shared.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-stone-900 rounded-2xl p-5 border border-stone-200 dark:border-stone-800 space-y-3">
+      <div>
+        <h2 className="font-medium text-stone-800 dark:text-stone-200 text-sm">Choose your partner</h2>
+        <p className="text-xs text-stone-400 mt-0.5">
+          Pick up to {MAX_PICKS} people in order of preference. This is completely private.
+        </p>
+      </div>
+      <div className="space-y-2">
+        {podMembers.map((m, i) => {
+          const isSelected = selected.includes(m.memberId);
+          const rank = selected.indexOf(m.memberId) + 1;
+          return (
+            <button
+              key={m.memberId}
+              onClick={() => toggle(m.memberId)}
+              className={`w-full text-left rounded-xl px-4 py-3 border flex items-center gap-3 transition-colors ${
+                isSelected
+                  ? 'border-teal-400 bg-teal-50 dark:bg-teal-950/40 dark:border-teal-600'
+                  : 'border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700'
+              }`}
+            >
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                isSelected ? 'bg-teal-500 text-white' : 'bg-stone-100 dark:bg-stone-800 text-stone-400'
+              }`}>
+                {isSelected ? rank : i + 1}
+              </div>
+              <span className="font-mono text-sm text-stone-700 dark:text-stone-300">{m.codename}</span>
+            </button>
+          );
+        })}
+      </div>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <button
+        onClick={submit}
+        disabled={saving || selected.length === 0}
+        className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl py-2.5 text-sm font-medium transition-colors"
+      >
+        {saving ? 'Saving…' : 'Submit picks'}
+      </button>
+      <p className="text-center text-xs text-stone-400">
+        You can change picks until matching runs.
+      </p>
     </div>
   );
 }

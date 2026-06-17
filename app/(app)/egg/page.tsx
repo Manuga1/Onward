@@ -25,15 +25,28 @@ export default async function EggRoomPage() {
   const pod = podMembership?.egg_pods as unknown as Record<string, unknown> | null ?? null;
 
   // Fetch pod members (codenames only — no PII)
-  let podMembers: { codename: string }[] = [];
+  let podMembers: { memberId: string; codename: string }[] = [];
   if (pod) {
     const { data: members } = await supabase
       .from('egg_pod_members')
-      .select('members(codename)')
+      .select('member_id, members(codename)')
       .eq('pod_id', pod.pod_id as string);
     podMembers = (members ?? []).map((m: Record<string, unknown>) => ({
+      memberId: m.member_id as string,
       codename: (m.members as Record<string, unknown>)?.codename as string ?? 'Anonymous',
     }));
+  }
+
+  // Fetch existing picks (so UI can pre-populate)
+  let existingPicks: string[] = [];
+  if (pod) {
+    const { data: picks } = await supabase
+      .from('member_picks')
+      .select('picked_member_id, rank')
+      .eq('member_id', user.id)
+      .eq('pod_id', pod.pod_id as string)
+      .order('rank', { ascending: true });
+    existingPicks = (picks ?? []).map((p: Record<string, unknown>) => p.picked_member_id as string);
   }
 
   // Check if already matched
@@ -46,5 +59,12 @@ export default async function EggRoomPage() {
 
   if (partnership) redirect('/home');
 
-  return <EggRoomClient pod={pod} podMembers={podMembers} />;
+  return (
+    <EggRoomClient
+      pod={pod}
+      podMembers={podMembers}
+      myMemberId={user.id}
+      existingPicks={existingPicks}
+    />
+  );
 }
