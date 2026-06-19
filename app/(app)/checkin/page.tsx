@@ -27,9 +27,10 @@ export default async function CheckInPage() {
   const partnershipData = partnership.partnerships as unknown as Record<string, unknown> | null;
   const streakDays = (partnershipData?.streak_days as number) ?? 0;
 
-  // Get today's window ID
-  const now = new Date();
-  const windowId = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  // Get today's window ID in member's local timezone (must match home page logic)
+  const windowId = new Date().toLocaleDateString('en-CA', {
+    timeZone: member?.timezone ?? 'America/New_York',
+  });
 
   // Check if already checked in today
   const { data: todayCheckIn } = await supabase

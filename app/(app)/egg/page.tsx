@@ -38,15 +38,19 @@ export default async function EggRoomPage() {
   }
 
   // Fetch existing picks (so UI can pre-populate)
+  // Uses service-role client because members have no SELECT policy on member_picks
+  // (picks are private between members — only the member's own row is safe to read back)
   let existingPicks: string[] = [];
   if (pod) {
-    const { data: picks } = await supabase
+    const { createSupabaseServiceClient } = await import('@/lib/db/service');
+    const serviceSupabase = createSupabaseServiceClient();
+    const { data: picksRow } = await serviceSupabase
       .from('member_picks')
-      .select('picked_member_id, rank')
+      .select('picks')
       .eq('member_id', user.id)
       .eq('pod_id', pod.pod_id as string)
-      .order('rank', { ascending: true });
-    existingPicks = (picks ?? []).map((p: Record<string, unknown>) => p.picked_member_id as string);
+      .maybeSingle();
+    existingPicks = (picksRow?.picks as string[] | null) ?? [];
   }
 
   // Check if already matched
