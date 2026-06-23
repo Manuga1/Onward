@@ -81,7 +81,9 @@ export async function POST(req: NextRequest) {
       .from('partnerships')
       .update({ streak_days: streakDays, last_contact_at: now.toISOString() })
       .eq('partnership_id', partnershipId);
+
+    return NextResponse.json({ ok: true, streakDays });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, streakDays: 0 });
 }

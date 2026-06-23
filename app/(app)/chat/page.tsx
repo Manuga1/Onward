@@ -40,13 +40,17 @@ export default async function ChatPage() {
     .limit(50);
 
   const decryptedMessages = await Promise.all(
-    (messages ?? []).map(async (m: Record<string, unknown>) => ({
-      messageId: m.message_id as string,
-      senderId: m.sender_id as string,
-      text: await decryptField(m.text_encrypted as string),
-      sentAt: m.sent_at as string,
-      isOwn: m.sender_id === user.id,
-    }))
+    (messages ?? []).map(async (m: Record<string, unknown>) => {
+      let text = '[message unavailable]';
+      try { text = await decryptField(m.text_encrypted as string); } catch { /* skip */ }
+      return {
+        messageId: m.message_id as string,
+        senderId: m.sender_id as string,
+        text,
+        sentAt: m.sent_at as string,
+        isOwn: m.sender_id === user.id,
+      };
+    })
   );
 
   return (

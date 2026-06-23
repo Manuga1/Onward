@@ -91,7 +91,7 @@ export function ChatClient({ memberId, partnershipId, partnerCodename, initialMe
           </p>
           <p className="text-xs text-stone-400">Your accountability partner</p>
         </div>
-        <Link href={`/report?targetId=${partnerCodename}`} aria-label="Report">
+        <Link href={`/report?targetCodename=${encodeURIComponent(partnerCodename)}`} aria-label="Report">
           <Flag className="w-4 h-4 text-stone-300 hover:text-red-400 transition-colors" />
         </Link>
       </header>

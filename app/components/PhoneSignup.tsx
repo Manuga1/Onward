@@ -3,13 +3,10 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/db/client';
 
-interface PhoneSignupProps {
-  onSuccess: () => void;
-}
-
+// Full page reload (window.location.href) is intentional — forces server to read new session cookie.
 type Step = 'phone' | 'otp';
 
-export function PhoneSignup({ onSuccess }: PhoneSignupProps) {
+export function PhoneSignup() {
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');

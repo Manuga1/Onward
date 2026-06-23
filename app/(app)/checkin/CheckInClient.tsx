@@ -27,6 +27,7 @@ export function CheckInClient({
   const router = useRouter();
   const [selected, setSelected] = useState<CheckInState | null>(null);
   const [submitted, setSubmitted] = useState(alreadyCheckedIn);
+  const [confirmedStreak, setConfirmedStreak] = useState(streakDays);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,7 +41,9 @@ export function CheckInClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ partnershipId, state: selected, windowId }),
       });
-      if (!res.ok) throw new Error((await res.json()).error);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      if (typeof data.streakDays === 'number') setConfirmedStreak(data.streakDays);
       setSubmitted(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
@@ -50,7 +53,7 @@ export function CheckInClient({
   };
 
   if (submitted) {
-    return <CheckInDone streakDays={streakDays + (selected ? 1 : 0)} state={selected} onHome={() => router.push('/home')} />;
+    return <CheckInDone streakDays={confirmedStreak} state={selected} onHome={() => router.push('/home')} />;
   }
 
   return (

@@ -16,7 +16,7 @@ const CATEGORIES: { value: ReportCategory; label: string; sub: string }[] = [
 function ReportForm() {
   const params = useSearchParams();
   const router = useRouter();
-  const targetCodename = params.get('targetId') ?? 'your partner';
+  const targetCodename = params.get('targetCodename') ?? 'your partner';
 
   const [category, setCategory] = useState<ReportCategory | ''>('');
   const [possibleMinor, setPossibleMinor] = useState(false);

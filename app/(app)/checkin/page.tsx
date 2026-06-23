@@ -13,7 +13,9 @@ export default async function CheckInPage() {
     .from('members')
     .select('codename, timezone, checkin_hour')
     .eq('member_id', user.id)
-    .single();
+    .maybeSingle();
+
+  if (!member) redirect('/onboarding');
 
   const { data: partnership } = await supabase
     .from('partnership_members')

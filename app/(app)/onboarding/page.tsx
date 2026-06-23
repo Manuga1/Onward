@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/db/client';
 import type { Gender, Intensity, Stage, FaithPreference } from '@/packages/core/types';
 
 const TIMEZONES = [
@@ -68,7 +69,7 @@ export default function OnboardingPage() {
     setLoading(true);
     setError('');
     try {
-      const { data: { session } } = await (await import('@/lib/db/client')).supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/onboarding', {
         method: 'POST',
         headers: {
