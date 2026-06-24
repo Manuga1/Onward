@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/db/getUser';
+import { createSupabaseServiceClient } from '@/lib/db/service';
 import { encryptField, hashForUniqueness } from '@/lib/crypto/fieldEncrypt';
 
 const ADJECTIVES = ['Cedar', 'River', 'Stone', 'Amber', 'Birch', 'Sage', 'Oak', 'Elm', 'Maple', 'Pine'];
@@ -32,7 +33,8 @@ export async function POST(req: NextRequest) {
     hashForUniqueness(identifier),
   ]);
 
-  const { error } = await supabase
+  const serviceSupabase = createSupabaseServiceClient();
+  const { error } = await serviceSupabase
     .from('members')
     .upsert({
       member_id: user.id,
@@ -49,7 +51,7 @@ export async function POST(req: NextRequest) {
     }, { onConflict: 'member_id' });
 
   if (error) {
-    console.error('[onboarding]', error.code);
+    console.error('[onboarding]', error.code, error.message);
     return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
   }
 
