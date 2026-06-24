@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/db/client';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-
 type Step = 'email' | 'sent';
 
 export function PhoneSignup() {
@@ -19,7 +17,7 @@ export function PhoneSignup() {
     setLoading(true);
     const { error: err } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${APP_URL}/auth/callback` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setLoading(false);
     if (err) {
