@@ -26,14 +26,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const serviceSupabase = createSupabaseServiceClient();
+
+    // Fetch full user via admin API — JWT claims may omit email
+    const { data: { user: fullUser } } = await serviceSupabase.auth.admin.getUserById(user.id);
+    const identifier = fullUser?.email ?? fullUser?.phone ?? user.email ?? user.phone ?? '';
+
     const codename = generateCodename();
-    const identifier = user.phone ?? user.email ?? '';
     const [phoneEncrypted, phoneHash] = await Promise.all([
       encryptField(identifier),
       hashForUniqueness(identifier),
     ]);
 
-    const serviceSupabase = createSupabaseServiceClient();
     const { error } = await serviceSupabase
       .from('members')
       .upsert({
