@@ -3,56 +3,30 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/db/client';
 
-// Full page reload (window.location.href) is intentional — forces server to read new session cookie.
-type Step = 'email' | 'otp';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+
+type Step = 'email' | 'sent';
 
 export function PhoneSignup() {
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSendLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error: err } = await supabase.auth.signInWithOtp({ email });
+    const { error: err } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${APP_URL}/auth/callback` },
+    });
     setLoading(false);
     if (err) {
       setError(err.message);
     } else {
-      setStep('otp');
+      setStep('sent');
     }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    const { data, error: err } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: 'email',
-    });
-    if (err) {
-      setLoading(false);
-      setError(err.message);
-      return;
-    }
-
-    // Exchange tokens into server-side HttpOnly cookies so API routes see the session
-    await fetch('/api/auth/confirm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        access_token: data.session?.access_token,
-        refresh_token: data.session?.refresh_token,
-      }),
-    });
-
-    setLoading(false);
-    window.location.href = '/onboarding';
   };
 
   return (
@@ -60,18 +34,18 @@ export function PhoneSignup() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-semibold text-stone-900 dark:text-stone-100">
-            {step === 'email' ? 'Your email address' : 'Enter the code'}
+            {step === 'email' ? 'Your email address' : 'Check your inbox'}
           </h1>
           <p className="text-stone-500 dark:text-stone-400 text-sm">
             {step === 'email'
-              ? "We'll send you a one-time code to verify your account. Your email is stored encrypted and never shared."
-              : `We sent a 6-digit code to ${email}. Check your spam folder if you don't see it.`}
+              ? "We'll send you a sign-in link. Your email is stored encrypted and never shared."
+              : `We sent a sign-in link to ${email}. Click it to continue — check spam if you don't see it.`}
           </p>
         </div>
 
         <div className="bg-white dark:bg-stone-900 rounded-2xl p-6 shadow-sm border border-stone-200 dark:border-stone-800">
           {step === 'email' ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
+            <form onSubmit={handleSendLink} className="space-y-4">
               <label className="block">
                 <span className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5 block">
                   Email address
@@ -92,49 +66,28 @@ export function PhoneSignup() {
                 disabled={loading || !email.includes('@')}
                 className="w-full py-3 rounded-xl font-medium text-white bg-teal-600 hover:bg-teal-700 disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? 'Sending…' : 'Send code'}
+                {loading ? 'Sending…' : 'Send sign-in link'}
               </button>
             </form>
           ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <label className="block">
-                <span className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5 block">
-                  6-digit code
-                </span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  value={otp}
-                  onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="000000"
-                  autoComplete="one-time-code"
-                  required
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-teal-500 text-center text-2xl tracking-[0.5em] font-mono"
-                />
-              </label>
-              {error && <p className="text-red-600 text-sm">{error}</p>}
-              <button
-                type="submit"
-                disabled={loading || otp.length !== 6}
-                className="w-full py-3 rounded-xl font-medium text-white bg-teal-600 hover:bg-teal-700 disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed transition-colors"
-              >
-                {loading ? 'Verifying…' : 'Verify'}
-              </button>
+            <div className="space-y-4 text-center">
+              <div className="text-5xl">📬</div>
+              <p className="text-stone-600 dark:text-stone-400 text-sm leading-relaxed">
+                Open the email from Onward and click the sign-in link. This tab will stay open — after clicking the link you'll be brought back automatically.
+              </p>
               <button
                 type="button"
-                onClick={() => { setStep('email'); setOtp(''); setError(''); }}
+                onClick={() => { setStep('email'); setError(''); }}
                 className="w-full py-2 text-sm text-stone-500 hover:text-stone-700"
               >
                 Use a different email
               </button>
-            </form>
+            </div>
           )}
         </div>
 
         <p className="text-center text-xs text-stone-400">
-          Check your spam folder if the code doesn't arrive within a minute.
+          Check your spam folder if the email doesn't arrive within a minute.
         </p>
       </div>
     </div>
