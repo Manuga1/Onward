@@ -12,48 +12,53 @@ function generateCodename(): string {
 }
 
 export async function POST(req: NextRequest) {
-  const { user, supabase } = await getUserFromRequest(req);
+  try {
+    const { user } = await getUserFromRequest(req);
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { gender, intensity, stage, timezone, checkinHour, faithPreference } = body;
+
+    if (!gender || !intensity || !stage || !timezone) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const codename = generateCodename();
+    const identifier = user.phone ?? user.email ?? '';
+    const [phoneEncrypted, phoneHash] = await Promise.all([
+      encryptField(identifier),
+      hashForUniqueness(identifier),
+    ]);
+
+    const serviceSupabase = createSupabaseServiceClient();
+    const { error } = await serviceSupabase
+      .from('members')
+      .upsert({
+        member_id: user.id,
+        codename,
+        phone_encrypted: phoneEncrypted,
+        phone_hash: phoneHash,
+        fight: 'Porn',
+        gender,
+        intensity,
+        stage,
+        timezone,
+        checkin_hour: checkinHour ?? 21,
+        faith_preference: faithPreference || null,
+      }, { onConflict: 'member_id' });
+
+    if (error) {
+      console.error('[onboarding] db error', error.code, error.message);
+      return NextResponse.json({ error: `DB: ${error.code} — ${error.message}` }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[onboarding] crash', msg);
+    return NextResponse.json({ error: `Crash: ${msg}` }, { status: 500 });
   }
-
-  const body = await req.json();
-  const { gender, intensity, stage, timezone, checkinHour, faithPreference } = body;
-
-  if (!gender || !intensity || !stage || !timezone) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-  }
-
-  const codename = generateCodename();
-  // Support both phone and email auth — encrypt whichever identifier is present
-  const identifier = user.phone ?? user.email ?? '';
-  const [phoneEncrypted, phoneHash] = await Promise.all([
-    encryptField(identifier),
-    hashForUniqueness(identifier),
-  ]);
-
-  const serviceSupabase = createSupabaseServiceClient();
-  const { error } = await serviceSupabase
-    .from('members')
-    .upsert({
-      member_id: user.id,
-      codename,
-      phone_encrypted: phoneEncrypted,
-      phone_hash: phoneHash,
-      fight: 'Porn',
-      gender,
-      intensity,
-      stage,
-      timezone,
-      checkin_hour: checkinHour ?? 21,
-      faith_preference: faithPreference || null,
-    }, { onConflict: 'member_id' });
-
-  if (error) {
-    console.error('[onboarding]', error.code, error.message);
-    return NextResponse.json({ error: `DB error: ${error.code} — ${error.message}` }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true });
 }
