@@ -78,7 +78,11 @@ export default function OnboardingPage() {
         },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed to save profile');
+      if (!res.ok) {
+        let msg = 'Failed to save profile';
+        try { msg = (await res.json()).error || msg; } catch { /* empty body */ }
+        throw new Error(msg);
+      }
       router.push('/egg');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
