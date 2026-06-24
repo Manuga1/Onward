@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error('[onboarding]', error.code, error.message);
-    return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
+    return NextResponse.json({ error: `DB error: ${error.code} — ${error.message}` }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
