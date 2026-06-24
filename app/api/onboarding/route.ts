@@ -25,10 +25,11 @@ export async function POST(req: NextRequest) {
   }
 
   const codename = generateCodename();
-  const phone = user.phone ?? '';
+  // Support both phone and email auth — encrypt whichever identifier is present
+  const identifier = user.phone ?? user.email ?? '';
   const [phoneEncrypted, phoneHash] = await Promise.all([
-    encryptField(phone),
-    hashForUniqueness(phone),
+    encryptField(identifier),
+    hashForUniqueness(identifier),
   ]);
 
   const { error } = await supabase

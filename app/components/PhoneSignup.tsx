@@ -4,26 +4,20 @@ import { useState } from 'react';
 import { supabase } from '@/lib/db/client';
 
 // Full page reload (window.location.href) is intentional — forces server to read new session cookie.
-type Step = 'phone' | 'otp';
+type Step = 'email' | 'otp';
 
 export function PhoneSignup() {
-  const [step, setStep] = useState<Step>('phone');
-  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<Step>('email');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const formatPhone = (raw: string): string => {
-    const digits = raw.replace(/\D/g, '');
-    return digits.startsWith('1') ? `+${digits}` : `+1${digits}`;
-  };
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const formatted = formatPhone(phone);
-    const { error: err } = await supabase.auth.signInWithOtp({ phone: formatted });
+    const { error: err } = await supabase.auth.signInWithOtp({ email });
     setLoading(false);
     if (err) {
       setError(err.message);
@@ -36,11 +30,10 @@ export function PhoneSignup() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const formatted = formatPhone(phone);
     const { data, error: err } = await supabase.auth.verifyOtp({
-      phone: formatted,
+      email,
       token: otp,
-      type: 'sms',
+      type: 'email',
     });
     if (err) {
       setLoading(false);
@@ -67,28 +60,28 @@ export function PhoneSignup() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-semibold text-stone-900 dark:text-stone-100">
-            {step === 'phone' ? 'Your phone number' : 'Enter the code'}
+            {step === 'email' ? 'Your email address' : 'Enter the code'}
           </h1>
           <p className="text-stone-500 dark:text-stone-400 text-sm">
-            {step === 'phone'
-              ? 'We use your phone number to send check-in reminders. It\'s stored encrypted and never shared.'
-              : `We sent a 6-digit code to ${phone}. It expires in 10 minutes.`}
+            {step === 'email'
+              ? "We'll send you a one-time code to verify your account. Your email is stored encrypted and never shared."
+              : `We sent a 6-digit code to ${email}. Check your spam folder if you don't see it.`}
           </p>
         </div>
 
         <div className="bg-white dark:bg-stone-900 rounded-2xl p-6 shadow-sm border border-stone-200 dark:border-stone-800">
-          {step === 'phone' ? (
+          {step === 'email' ? (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <label className="block">
                 <span className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5 block">
-                  US phone number
+                  Email address
                 </span>
                 <input
-                  type="tel"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  placeholder="(555) 000-0000"
-                  autoComplete="tel"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
                   required
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
@@ -96,7 +89,7 @@ export function PhoneSignup() {
               {error && <p className="text-red-600 text-sm">{error}</p>}
               <button
                 type="submit"
-                disabled={loading || phone.length < 10}
+                disabled={loading || !email.includes('@')}
                 className="w-full py-3 rounded-xl font-medium text-white bg-teal-600 hover:bg-teal-700 disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Sending…' : 'Send code'}
@@ -131,17 +124,17 @@ export function PhoneSignup() {
               </button>
               <button
                 type="button"
-                onClick={() => setStep('phone')}
+                onClick={() => { setStep('email'); setOtp(''); setError(''); }}
                 className="w-full py-2 text-sm text-stone-500 hover:text-stone-700"
               >
-                Use a different number
+                Use a different email
               </button>
             </form>
           )}
         </div>
 
         <p className="text-center text-xs text-stone-400">
-          US numbers only. Standard messaging rates apply.
+          Check your spam folder if the code doesn't arrive within a minute.
         </p>
       </div>
     </div>
