@@ -27,7 +27,7 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        window.location.href = '/onboarding';
+        window.location.href = '/home';
       }
 
       if (event === 'INITIAL_SESSION' && !session) {
