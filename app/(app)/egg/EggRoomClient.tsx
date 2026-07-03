@@ -75,7 +75,7 @@ export function EggRoomClient({ pod, podMembers, myMemberId, existingPicks }: Eg
         <div className="bg-white dark:bg-stone-900 rounded-2xl p-5 border border-stone-200 dark:border-stone-800 space-y-3">
           <h2 className="font-medium text-stone-800 dark:text-stone-200 flex items-center gap-2">
             <Heart className="w-4 h-4 text-teal-500" />
-            What to do this week
+            What to do these few days
           </h2>
           <ul className="space-y-2 text-sm text-stone-600 dark:text-stone-400">
             <li>• Introduce yourself using your codename</li>
