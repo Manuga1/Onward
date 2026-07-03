@@ -8,8 +8,14 @@ export default async function EggRoomPage() {
 
   if (!user) redirect('/signup');
 
+  // Use service-role client for pod reads — the egg_pod_members RLS policy is
+  // self-referential (queries its own table), which Postgres blocks as recursion.
+  // We've already authenticated the user via cookie, so reading their own pod is safe.
+  const { createSupabaseServiceClient } = await import('@/lib/db/service');
+  const serviceSupabase = createSupabaseServiceClient();
+
   // Fetch member's current pod
-  const { data: podMembership } = await supabase
+  const { data: podMembership } = await serviceSupabase
     .from('egg_pod_members')
     .select(`
       pod_id,
@@ -27,7 +33,7 @@ export default async function EggRoomPage() {
   // Fetch pod members (codenames only — no PII)
   let podMembers: { memberId: string; codename: string }[] = [];
   if (pod) {
-    const { data: members } = await supabase
+    const { data: members } = await serviceSupabase
       .from('egg_pod_members')
       .select('member_id, members(codename)')
       .eq('pod_id', pod.pod_id as string);
@@ -42,8 +48,6 @@ export default async function EggRoomPage() {
   // (picks are private between members — only the member's own row is safe to read back)
   let existingPicks: string[] = [];
   if (pod) {
-    const { createSupabaseServiceClient } = await import('@/lib/db/service');
-    const serviceSupabase = createSupabaseServiceClient();
     const { data: picksRow } = await serviceSupabase
       .from('member_picks')
       .select('picks')
