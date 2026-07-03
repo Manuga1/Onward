@@ -2,6 +2,10 @@ import { createSupabaseServerClient } from '@/lib/db/server';
 import { redirect } from 'next/navigation';
 import { EggRoomClient } from './EggRoomClient';
 
+// Never cache — pod membership must always be read fresh per request
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function EggRoomPage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
