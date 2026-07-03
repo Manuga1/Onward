@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/db/server';
+import { createSupabaseServiceClient } from '@/lib/db/service';
 
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
@@ -17,8 +18,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'picks must be an array of up to 3 memberIds' }, { status: 400 });
   }
 
+  // Use service-role client for pod reads — egg_pod_members has a self-referential
+  // RLS policy that Postgres blocks as recursion. User is already authenticated above.
+  const service = createSupabaseServiceClient();
+
   // Verify member is in this pod
-  const { data: membership } = await supabase
+  const { data: membership } = await service
     .from('egg_pod_members')
     .select('pod_id')
     .eq('pod_id', podId)
@@ -29,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   // Verify all picks are in the same pod
   if (picks.length > 0) {
-    const { data: validMembers } = await supabase
+    const { data: validMembers } = await service
       .from('egg_pod_members')
       .select('member_id')
       .eq('pod_id', podId)
@@ -40,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { error } = await supabase.from('member_picks').upsert({
+  const { error } = await service.from('member_picks').upsert({
     pod_id: podId,
     member_id: user.id,
     picks,
