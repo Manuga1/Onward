@@ -13,3 +13,4 @@ export default function Root() {
   redirect('/signup');
 }
 
+
