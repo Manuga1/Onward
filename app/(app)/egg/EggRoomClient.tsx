@@ -24,11 +24,11 @@ export function EggRoomClient({ pod, podMembers, myMemberId, existingPicks }: Eg
         <header className="space-y-1">
           <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400">
             <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-            <span className="text-sm font-medium">Founding cohort · Week 1</span>
+            <span className="text-sm font-medium">Your cohort</span>
           </div>
           <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">Your group</h1>
           <p className="text-stone-500 dark:text-stone-400 text-sm">
-            Get to know each other this week. At the end, you'll each choose a partner.
+            Get to know each other. When the time&apos;s up, you&apos;ll each choose a partner.
           </p>
         </header>
 
@@ -37,9 +37,9 @@ export function EggRoomClient({ pod, podMembers, myMemberId, existingPicks }: Eg
           <Clock className="text-stone-400 w-5 h-5 flex-shrink-0" />
           <div>
             <p className="text-sm font-medium text-stone-700 dark:text-stone-300">
-              {daysLeft > 0 ? `${daysLeft} day${daysLeft !== 1 ? 's' : ''} to choose` : 'Matching today'}
+              {daysLeft > 0 ? `${daysLeft} day${daysLeft !== 1 ? 's' : ''} to choose` : 'Matching soon'}
             </p>
-            <p className="text-xs text-stone-400">Matching happens at the end of the week</p>
+            <p className="text-xs text-stone-400">Once the timer ends, you&apos;ll be matched with a partner</p>
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export function EggRoomClient({ pod, podMembers, myMemberId, existingPicks }: Eg
         <div className="bg-white dark:bg-stone-900 rounded-2xl p-5 border border-stone-200 dark:border-stone-800 space-y-3">
           <h2 className="font-medium text-stone-800 dark:text-stone-200 flex items-center gap-2">
             <Heart className="w-4 h-4 text-teal-500" />
-            What to do these few days
+            What to do now
           </h2>
           <ul className="space-y-2 text-sm text-stone-600 dark:text-stone-400">
             <li>• Introduce yourself using your codename</li>
@@ -85,10 +85,6 @@ export function EggRoomClient({ pod, podMembers, myMemberId, existingPicks }: Eg
           </ul>
         </div>
 
-        <p className="text-center text-xs text-stone-400">
-          Matching is handled by our team this week. You'll hear from us on{' '}
-          {endsAt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.
-        </p>
       </div>
     </div>
   );
