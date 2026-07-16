@@ -71,11 +71,15 @@ export default async function EggRoomPage() {
 
   if (partnership) redirect('/home');
 
+  const myCodename =
+    podMembers.find(m => m.memberId === user.id)?.codename ?? 'You';
+
   return (
     <EggRoomClient
       pod={pod}
       podMembers={podMembers}
       myMemberId={user.id}
+      myCodename={myCodename}
       existingPicks={existingPicks}
     />
   );
