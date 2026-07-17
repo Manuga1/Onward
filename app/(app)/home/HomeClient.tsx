@@ -12,6 +12,8 @@ interface HomeClientProps {
   partnershipId: string;
   partnerDark: boolean;
   isPaused: boolean;
+  partnerState: string | null;
+  partnerCheckInAt: string | null;
 }
 
 export function HomeClient({
@@ -20,6 +22,8 @@ export function HomeClient({
   checkedInToday,
   partnerDark,
   isPaused,
+  partnerState,
+  partnerCheckInAt,
 }: HomeClientProps) {
   const [rematchDismissed, setRematchDismissed] = useState(false);
   const [rematchRequested, setRematchRequested] = useState(false);
@@ -110,6 +114,23 @@ export function HomeClient({
           </div>
         </div>
 
+        {/* Partner's latest check-in */}
+        {partnerState && (
+          <div className="bg-white dark:bg-stone-900 rounded-2xl p-4 border border-stone-200 dark:border-stone-800 flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0 ${partnerStateStyle(partnerState)}`}>
+              {partnerStateEmoji(partnerState)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-stone-800 dark:text-stone-200">
+                Your partner checked in{partnerStateLabel(partnerState)}
+              </p>
+              {partnerCheckInAt && (
+                <p className="text-xs text-stone-400">{relativeTime(partnerCheckInAt)}</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Check-in CTA */}
         {checkedInToday ? (
           <div className="bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-2xl p-5 text-center space-y-1">
@@ -157,4 +178,36 @@ function greeting(): string {
   if (h < 12) return 'Good morning.';
   if (h < 17) return 'Good afternoon.';
   return 'Good evening.';
+}
+
+function partnerStateEmoji(state: string): string {
+  if (state === 'Good') return '🟢';
+  if (state === 'Shaky') return '🟡';
+  if (state === 'Fell') return '🤎';
+  return '💬';
+}
+
+function partnerStateStyle(state: string): string {
+  if (state === 'Good') return 'bg-teal-100 dark:bg-teal-900';
+  if (state === 'Shaky') return 'bg-amber-100 dark:bg-amber-900';
+  if (state === 'Fell') return 'bg-stone-100 dark:bg-stone-800';
+  return 'bg-stone-100 dark:bg-stone-800';
+}
+
+function partnerStateLabel(state: string): string {
+  if (state === 'Good') return ' — doing good.';
+  if (state === 'Shaky') return ' — feeling shaky.';
+  if (state === 'Fell') return ' — had a fall, but showed up honestly.';
+  return '.';
+}
+
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days !== 1 ? 's' : ''} ago`;
 }

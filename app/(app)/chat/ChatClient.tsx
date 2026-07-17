@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Send, Flag, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { authFetch } from '@/lib/db/authFetch';
@@ -28,11 +27,44 @@ export function ChatClient({ memberId, partnershipId, partnerCodename, initialMe
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Keep the newest confirmed (server-assigned) timestamp for incremental polling.
+  const latestTs = () =>
+    messages
+      .filter(m => !m.messageId.startsWith('opt_'))
+      .reduce<string | null>((acc, m) => (!acc || m.sentAt > acc ? m.sentAt : acc), null);
+
+  // Poll for new messages from the partner every 4s.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    let active = true;
+    const poll = async () => {
+      const after = latestTs();
+      const url = after
+        ? `/api/chat?partnershipId=${partnershipId}&after=${encodeURIComponent(after)}`
+        : `/api/chat?partnershipId=${partnershipId}`;
+      try {
+        const res = await authFetch(url);
+        if (!res.ok || !active) return;
+        const data = await res.json();
+        const incoming: Message[] = data.messages ?? [];
+        if (incoming.length === 0) return;
+        setMessages(prev => {
+          const seen = new Set(prev.map(m => m.messageId));
+          const fresh = incoming.filter(m => !seen.has(m.messageId));
+          return fresh.length ? [...prev, ...fresh] : prev;
+        });
+      } catch { /* transient — next tick retries */ }
+    };
+    const id = setInterval(poll, 4000);
+    return () => { active = false; clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partnershipId, messages]);
+
+  // Scroll only the message list (never the page) when new messages arrive.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -79,7 +111,7 @@ export function ChatClient({ memberId, partnershipId, partnerCodename, initialMe
   const charsLeft = MAX_CHARS - draft.length;
 
   return (
-    <div className="flex flex-col h-screen bg-stone-50 dark:bg-stone-950">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-stone-50 dark:bg-stone-950">
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 flex-shrink-0">
         <Link href="/home" aria-label="Back">
@@ -102,7 +134,7 @@ export function ChatClient({ memberId, partnershipId, partnerCodename, initialMe
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-center text-stone-400 text-sm py-12">
             <p>Say hello to {partnerCodename}.</p>
@@ -112,7 +144,6 @@ export function ChatClient({ memberId, partnershipId, partnerCodename, initialMe
         {messages.map(msg => (
           <MessageBubble key={msg.messageId} message={msg} />
         ))}
-        <div ref={bottomRef} />
       </div>
 
       {/* Input */}

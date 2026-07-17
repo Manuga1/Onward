@@ -1,8 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/db/server';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { Flame } from 'lucide-react';
 import { PARTNER_DARK_THRESHOLD_DAYS } from '@/packages/core/streak';
+import { decryptField } from '@/lib/crypto/fieldEncrypt';
 import { HomeClient } from './HomeClient';
 
 export default async function HomePage() {
@@ -94,6 +93,24 @@ export default async function HomePage() {
 
   const partnerDark = partnerDarkDays >= PARTNER_DARK_THRESHOLD_DAYS;
 
+  // Partner's most recent check-in state (partner sees status, not history — per spec)
+  let partnerState: string | null = null;
+  let partnerCheckInAt: string | null = null;
+  if (partnerId) {
+    const { data: latest } = await supabase
+      .from('check_ins')
+      .select('state_encrypted, submitted_at')
+      .eq('member_id', partnerId)
+      .eq('partnership_id', partnershipId)
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latest) {
+      try { partnerState = await decryptField(latest.state_encrypted as string); } catch { /* skip */ }
+      partnerCheckInAt = latest.submitted_at as string;
+    }
+  }
+
   return (
     <HomeClient
       codename={member.codename}
@@ -102,6 +119,8 @@ export default async function HomePage() {
       partnershipId={partnershipId}
       partnerDark={partnerDark}
       isPaused={isPaused}
+      partnerState={partnerState}
+      partnerCheckInAt={partnerCheckInAt}
     />
   );
 }
