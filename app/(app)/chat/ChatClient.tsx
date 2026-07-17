@@ -67,6 +67,17 @@ export function ChatClient({ memberId, partnershipId, partnerCodename, initialMe
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
+  // Let the on-screen keyboard OVERLAY the chat instead of resizing the
+  // viewport (which shoves the whole UI upward). Supported in Chromium/Android;
+  // browsers without it fall back to default behavior harmlessly.
+  useEffect(() => {
+    const vk = (navigator as unknown as { virtualKeyboard?: { overlaysContent: boolean } }).virtualKeyboard;
+    if (vk) {
+      vk.overlaysContent = true;
+      return () => { vk.overlaysContent = false; };
+    }
+  }, []);
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     const text = draft.trim();
@@ -111,7 +122,10 @@ export function ChatClient({ memberId, partnershipId, partnerCodename, initialMe
   const charsLeft = MAX_CHARS - draft.length;
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-stone-50 dark:bg-stone-950">
+    <div
+      className="flex flex-col h-[100dvh] overflow-hidden bg-stone-50 dark:bg-stone-950"
+      style={{ paddingBottom: 'env(keyboard-inset-height, 0px)' }}
+    >
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 flex-shrink-0">
         <Link href="/home" aria-label="Back">
