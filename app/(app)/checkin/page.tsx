@@ -11,7 +11,7 @@ export default async function CheckInPage() {
   // Get member's partnership and today's check-in
   const { data: member } = await supabase
     .from('members')
-    .select('codename, timezone, checkin_hour')
+    .select('codename, timezone, checkin_hour, checkin_mode')
     .eq('member_id', user.id)
     .maybeSingle();
 
@@ -34,6 +34,19 @@ export default async function CheckInPage() {
     timeZone: member?.timezone ?? 'America/New_York',
   });
 
+  // For 'ai_daily' members, today's window starts at the calendar-optimized hour.
+  let effectiveHour = member?.checkin_hour ?? 21;
+  if (member?.checkin_mode === 'ai_daily') {
+    const { createSupabaseServiceClient } = await import('@/lib/db/service');
+    const { data: reco } = await createSupabaseServiceClient()
+      .from('checkin_recommendations')
+      .select('hour')
+      .eq('member_id', user.id)
+      .eq('window_date', windowId)
+      .maybeSingle();
+    if (reco?.hour !== undefined && reco?.hour !== null) effectiveHour = reco.hour as number;
+  }
+
   // Check if already checked in today
   const { data: todayCheckIn } = await supabase
     .from('check_ins')
@@ -49,7 +62,7 @@ export default async function CheckInPage() {
       partnershipId={partnership.partnership_id}
       streakDays={streakDays}
       timezone={member?.timezone ?? 'America/New_York'}
-      checkinHour={member?.checkin_hour ?? 21}
+      checkinHour={effectiveHour}
       alreadyCheckedIn={!!todayCheckIn}
       windowId={windowId}
     />

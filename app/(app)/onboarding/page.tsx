@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/db/client';
 import type { Gender, Intensity, Stage, FaithPreference } from '@/packages/core/types';
+import type { DailyRecommendation } from '@/packages/core';
+import { CalendarPersonalizer, type CheckinMode } from '@/app/components/CalendarPersonalizer';
 
 const TIMEZONES = [
   { value: 'America/New_York', label: 'Eastern (ET)' },
@@ -14,18 +16,13 @@ const TIMEZONES = [
   { value: 'Pacific/Honolulu', label: 'Hawaii (HT)' },
 ];
 
-const CHECK_IN_HOURS = Array.from({ length: 24 }, (_, i) => {
-  const h = i % 12 || 12;
-  const ampm = i < 12 ? 'AM' : 'PM';
-  return { value: i, label: `${h}:00 ${ampm}` };
-});
-
 interface ProfileForm {
   gender: Gender | '';
   intensity: Intensity | '';
   stage: Stage | '';
   timezone: string;
   checkinHour: number;
+  checkinMode: CheckinMode;
   faithPreference: FaithPreference | '';
 }
 
@@ -38,8 +35,10 @@ export default function OnboardingPage() {
     stage: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
     checkinHour: 21,
+    checkinMode: 'fixed',
     faithPreference: '',
   });
+  const [recommendations, setRecommendations] = useState<DailyRecommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -48,8 +47,11 @@ export default function OnboardingPage() {
     <IntensityStep key="intensity" value={form.intensity} onChange={v => setForm(f => ({ ...f, intensity: v }))} />,
     <StageStep key="stage" value={form.stage} onChange={v => setForm(f => ({ ...f, stage: v }))} />,
     <TimezoneStep key="tz" timezone={form.timezone} checkinHour={form.checkinHour}
+      checkinMode={form.checkinMode}
       onTimezoneChange={v => setForm(f => ({ ...f, timezone: v }))}
-      onHourChange={v => setForm(f => ({ ...f, checkinHour: v }))} />,
+      onHourChange={v => setForm(f => ({ ...f, checkinHour: v }))}
+      onModeChange={v => setForm(f => ({ ...f, checkinMode: v }))}
+      onRecommendationsChange={setRecommendations} />,
     <FaithStep key="faith" value={form.faithPreference} onChange={v => setForm(f => ({ ...f, faithPreference: v }))} />,
   ];
 
@@ -76,7 +78,7 @@ export default function OnboardingPage() {
           'Content-Type': 'application/json',
           ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, recommendations }),
       });
       if (!res.ok) {
         let msg = 'Failed to save profile';
@@ -167,9 +169,11 @@ function StageStep({ value, onChange }: { value: string; onChange: (v: Stage) =>
   );
 }
 
-function TimezoneStep({ timezone, checkinHour, onTimezoneChange, onHourChange }: {
-  timezone: string; checkinHour: number;
+function TimezoneStep({ timezone, checkinHour, checkinMode, onTimezoneChange, onHourChange, onModeChange, onRecommendationsChange }: {
+  timezone: string; checkinHour: number; checkinMode: CheckinMode;
   onTimezoneChange: (v: string) => void; onHourChange: (v: number) => void;
+  onModeChange: (v: CheckinMode) => void;
+  onRecommendationsChange: (recs: DailyRecommendation[]) => void;
 }) {
   return (
     <div className="space-y-5">
@@ -183,13 +187,13 @@ function TimezoneStep({ timezone, checkinHour, onTimezoneChange, onHourChange }:
             {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
           </select>
         </label>
-        <label className="block">
-          <span className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-1 block">Check-in window starts at</span>
-          <select value={checkinHour} onChange={e => onHourChange(parseInt(e.target.value))}
-            className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-teal-500">
-            {CHECK_IN_HOURS.map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
-          </select>
-        </label>
+        <CalendarPersonalizer
+          checkinHour={checkinHour}
+          onHourChange={onHourChange}
+          mode={checkinMode}
+          onModeChange={onModeChange}
+          onRecommendationsChange={onRecommendationsChange}
+        />
         <p className="text-xs text-stone-400">You can change this anytime in settings.</p>
       </div>
     </div>

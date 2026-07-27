@@ -21,6 +21,11 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { gender, intensity, stage, timezone, checkinHour, faithPreference } = body;
+    const checkinMode: string = ['fixed', 'ai_consistent', 'ai_daily'].includes(body.checkinMode)
+      ? body.checkinMode
+      : 'fixed';
+    const recommendations: { date: string; hour: number; minute: number }[] =
+      Array.isArray(body.recommendations) ? body.recommendations : [];
 
     if (!gender || !intensity || !stage || !timezone) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -51,12 +56,29 @@ export async function POST(req: NextRequest) {
         stage,
         timezone,
         checkin_hour: checkinHour ?? 21,
+        checkin_mode: checkinMode,
         faith_preference: faithPreference || null,
       }, { onConflict: 'member_id' });
 
     if (error) {
       console.error('[onboarding] db error', error.code, error.message);
       return NextResponse.json({ error: `DB: ${error.code} — ${error.message}` }, { status: 500 });
+    }
+
+    // For per-day mode, store the (times-only) recommendations. Replace any prior set.
+    if (checkinMode === 'ai_daily' && recommendations.length > 0) {
+      await serviceSupabase.from('checkin_recommendations').delete().eq('member_id', user.id);
+      const rows = recommendations
+        .filter(r => typeof r.hour === 'number' && typeof r.date === 'string')
+        .map(r => ({
+          member_id: user.id,
+          window_date: r.date,
+          hour: r.hour,
+          minute: r.minute ?? 0,
+        }));
+      if (rows.length > 0) {
+        await serviceSupabase.from('checkin_recommendations').insert(rows);
+      }
     }
 
     return NextResponse.json({ ok: true });
