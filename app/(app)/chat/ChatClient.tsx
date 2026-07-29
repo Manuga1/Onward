@@ -161,7 +161,10 @@ export function ChatClient({ memberId, partnershipId, partnerCodename, initialMe
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 bg-white dark:bg-stone-900 border-t border-stone-200 dark:border-stone-800 px-4 py-3">
+      <div
+        className="flex-shrink-0 bg-white dark:bg-stone-900 border-t border-stone-200 dark:border-stone-800 px-4 py-3"
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      >
         {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
         <form onSubmit={handleSend} className="flex gap-2 items-end">
           <div className="flex-1">
